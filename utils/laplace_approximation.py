@@ -13,7 +13,7 @@ def BronKerbosch2(G, P, R=None, X=None):
     if not P and not X:
         yield R
     try:
-        u = random.choice(list(P.union(X)))
+        u = list(P.union(X))[0]
         S = P.difference(G[u])
     # if union of P and X is empty
     except IndexError:
@@ -49,7 +49,7 @@ def constrained_cov(G, L, M, N=50):
     """
     C_l = list(BronKerbosch2(G, G.keys()))
     K = np.linalg.inv(M)
-    K_ = copy.deepcopy(K)
+    K_ = K
     for i in range(N):
         for c in C_l:
             c = tuple(c)
@@ -57,7 +57,7 @@ def constrained_cov(G, L, M, N=50):
             Q_inv[np.ix_(c, c)] += np.linalg.inv(L[c,:][:,c]) - np.linalg.inv(K_[c,:][:,c]) # subset first, then take inv     
             K_ = np.linalg.inv(Q_inv)
         if np.max(K - K_) < 1e-8: break
-        K = copy.deepcopy(K_)
+        K = K_
     return K 
 
 def laplace_approx(G, delta, D): 
