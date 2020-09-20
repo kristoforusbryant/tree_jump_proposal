@@ -1,6 +1,7 @@
 import numpy as np 
 import networkx as nx
 from .brute_force import count_spanning_partitions_brute
+from .combinatorics import power, factorial 
 
 # Implement Dynamic Programming
 def count_spanning_trees(G): 
@@ -8,7 +9,7 @@ def count_spanning_trees(G):
     D = np.diag(np.array(A.sum(axis=0))[0])
     L = D - A
     eigv = np.linalg.eigvals(L)
-    return int(np.round(np.prod(eigv[eigv > 0.0000001])/L.shape[0]))
+    return int(np.round(np.prod(eigv[np.abs(eigv) > 0.0000001])/L.shape[0]))
 
 def count_spanning_partitions(G,k, memo={}):  
     #if in memo  
@@ -27,9 +28,8 @@ def count_spanning_partitions(G,k, memo={}):
     
     #else 
     tau = round(count_spanning_trees(G))
-    total = 1
-    for i in range(k): total *= (tau - i) / (k-i)
-    
+    total = factorial(tau,k)
+       
     sum_connected = 0 
     
     for i in range(1,np.power(2, len(G.edges)) -1):  # exclude the null and the graph G

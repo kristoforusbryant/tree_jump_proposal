@@ -1,6 +1,7 @@
 import numpy as np 
 import networkx as nx 
 from itertools import combinations, chain
+from .combinatorics import *
 
 # Defining a Graph 
 class Graph(): 
@@ -89,6 +90,8 @@ def count_spanning_partitions_brute(G, k):
     all_trees = all_spanning_trees(G)
     truth_count = 0
     set_E = set([(min(e), max(e)) for e in G.edges])
-    for idxs in list(combinations(range(len(all_trees)), k)):
-        truth_count += (set(chain.from_iterable([all_trees[i] for i in idxs])) == set_E)
+    
+    for j in range(1,k+1): 
+        for idxs in list(combinations(range(len(all_trees)), j)):
+            truth_count += (set(chain.from_iterable([all_trees[i] for i in idxs])) == set_E) 
     return truth_count
