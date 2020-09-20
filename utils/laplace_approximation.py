@@ -47,14 +47,17 @@ def constrained_cov(G, L, M, N=50):
     """
     C_l = list(BronKerbosch2(G, G.keys()))
     K = np.linalg.inv(M)
+    K_ = copy.deepcopy(K)
     for i in range(N):
         for c in C_l:
             c = tuple(c)
-            Q_inv = np.linalg.inv(K) 
-            Q_inv[np.ix_(c, c)] += np.linalg.inv(L[c,:][:,c]) - np.linalg.inv(K[c,:][:,c]) # subset first, then take inv     
-            K = np.linalg.inv(Q_inv)
+            Q_inv = np.linalg.inv(K_) 
+            Q_inv[np.ix_(c, c)] += np.linalg.inv(L[c,:][:,c]) - np.linalg.inv(K_[c,:][:,c]) # subset first, then take inv     
+            K_ = np.linalg.inv(Q_inv)
+        if np.max(K - K_) < 1e-8: break
+        K = copy.deepcopy(K_)
     return K 
-    
+
 def laplace_approx(G, delta, D): 
     """
     Laplace Approximation as outlined by (Lenkoski and Dobra, 2011)
