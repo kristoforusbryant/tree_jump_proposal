@@ -32,6 +32,7 @@ def mode(G, delta, D, N=50):
     K = np.eye(D.shape[0])
     C_l = list(BronKerbosch2(G, G.keys()))
     for i in range(N):
+        K_ = copy.deepcopy(K)
         for c in C_l:
             not_c = tuple(sorted(list(set(range(len(G))) - set(c))))
             c = tuple(c)
@@ -39,6 +40,7 @@ def mode(G, delta, D, N=50):
             C = K[c,:][:, not_c]
             D = K[not_c,:][:, not_c]
             K[np.ix_(c, c)]= np.linalg.inv(L[c,:][:,c]) + (C @ np.linalg.inv(D) @ B) 
+        if np.max(K - K_) < 1e-8: break 
     return K 
 
 def constrained_cov(G, L, M, N=50):
