@@ -2,6 +2,18 @@ import numpy as np
 import copy
 import random  
 
+def BronKerbosch1(G, P, R=None, X=None):
+    P = set(P)
+    R = set() if R is None else R
+    X = set() if X is None else X
+    if not P and not X:
+        yield R
+    while P:
+        v = P.pop()
+        yield from BronKerbosch1(G,
+            P=P.intersection(G[v]), R=R.union([v]), X=X.intersection(G[v]))
+        X.add(v)
+
 def BronKerbosch2(G, P, R=None, X=None):
     """ 
     Bron-Kerbosch Algorithm with Pivot from Bron and Kerbosch(1973)
@@ -30,7 +42,7 @@ def mode(G, delta, D, N=50):
     """
     L = D / (delta - 2)
     K = np.eye(D.shape[0])
-    C_l = list(BronKerbosch2(G, G.keys()))
+    C_l = list(BronKerbosch1(G, G.keys()))
     for i in range(N):
         K_ = copy.deepcopy(K)
         for c in C_l:
@@ -47,7 +59,7 @@ def constrained_cov(G, L, M, N=50):
     """
     The second cyclic algorithm in (Speed and Kiiveri, 1986)
     """
-    C_l = list(BronKerbosch2(G, G.keys()))
+    C_l = list(BronKerbosch1(G, G.keys()))
     K = np.linalg.inv(M)
     K_ = K
     for i in range(N):
@@ -60,20 +72,6 @@ def constrained_cov(G, L, M, N=50):
         K = K_
     return K 
 
-def laplace_approx(G, delta, D): 
-    """
-    Laplace Approximation as outlined by (Lenkoski and Dobra, 2011)
-    """
-    K = mode(G, delta, D)
-    V = []
-    for k,l in G.items():
-        V.append((k,k))
-        for v in l: 
-            if k < v: V.append((k,v))
-    h = -.5 * (np.trace(np.transpose(K) @ D) - (delta - 2) * np.log(np.linalg.det(K))) 
-    H = hessian(K, V, delta, D)
-    return np.exp(h) * np.power(2*np.pi, len(V)/2) * np.power(np.linalg.det(-H), -1/2)
-    
 def hessian(K, V, delta, D): 
     H = np.zeros((len(V), len(V)))
     K_inv = np.linalg.inv(K)
@@ -87,3 +85,19 @@ def hessian(K, V, delta, D):
             one_kl[(k,l),(l,k)] = 1
             H[a,b] = -.5*(delta-2)*np.trace(K_inv @ one_ij @ K_inv @ one_kl)
     return H
+
+def laplace_approx_(G, delta, D): 
+    """
+    Laplace Approximation as outlined by (Lenkoski and Dobra, 2011)
+    """
+    maxmin = lambda x: max(min(x,700),-700)
+    K = mode(G, delta, D)
+    V = []
+    for k,l in G.items():
+        V.append((k,k))
+        for v in l: 
+            if k < v: V.append((k,v))
+    h = -.5 * (np.trace(np.transpose(K) @ D) - (delta - 2) * np.log(np.linalg.det(K)))
+    H = hessian(K, V, delta, D)
+    log_p = h + len(V)/2 * np.log(2*np.pi) + (-1/2) * np.log(np.linalg.det(-H))
+    return np.exp(maxmin(log_p))
