@@ -86,7 +86,7 @@ def hessian(K, V, delta, D):
             H[a,b] = -.5*(delta-2)*np.trace(K_inv @ one_ij @ K_inv @ one_kl)
     return H
 
-def laplace_approx_(G, delta, D): 
+def laplace_approx(G, delta, D, as_log_prob=True): 
     """
     Laplace Approximation as outlined by (Lenkoski and Dobra, 2011)
     """
@@ -100,4 +100,7 @@ def laplace_approx_(G, delta, D):
     h = -.5 * (np.trace(np.transpose(K) @ D) - (delta - 2) * np.log(np.linalg.det(K)))
     H = hessian(K, V, delta, D)
     log_p = h + len(V)/2 * np.log(2*np.pi) + (-1/2) * np.log(np.linalg.det(-H))
-    return np.exp(maxmin(log_p))
+    if as_log_prob:
+        return maxmin(log_p)
+    else: 
+        return np.exp(maxmin(log_p))
