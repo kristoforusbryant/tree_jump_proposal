@@ -16,37 +16,40 @@ def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500):
     alphas = []
     params_l = []
     
-    post_e = lambda lik,prior,params: lik(data, params) * np.prod(prior(params))
+    maxmin = lambda x: max(min(x,700),-700)
+    post_e = lambda lik,prior,params: lik(data, params) + np.sum(prior(params))
     # Initialisation 
     while True: 
         params = prior_s()
-        if post_e(lik_e, prior_e, params) != 0: 
+        if post_e(lik_e, prior_e, params) != -np.inf: 
             break
+    
     # Burn in 
     for _ in tqdm(range(burnin)):
         params_ = prop_s(params)
-        numerator = (post_e(lik_e, prior_e, params_) * prop_e(params,params_)) 
-        denominator = (post_e(lik_e, prior_e, params) * prop_e(params_,params))
-        
-        if denominator > 0: 
-            alpha = min(numerator / denominator, 1)
-        else: 
-            alpha = 1
-        if np.random.uniform() < alpha: 
+        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
+        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
+        alpha = min(numerator - denominator, 0)
+                
+        if np.random.uniform() < np.exp(maxmin(alpha)): 
             params = params_ 
             params_copy = copy.deepcopy(params)
     # Sampler
     for _ in tqdm(range(N)):
         params_l.append(params)
         params_ = prop_s(params)
-        numerator =  (post_e(lik_e, prior_e, params_) * prop_e(params,params_))
-        denominator = (post_e(lik_e, prior_e, params) * prop_e(params_,params))
-        if denominator > 0: 
-            alpha = min(numerator / denominator, 1)
-        else: 
-            alpha = 1
+        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
+        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
+        alpha = min(maxmin(numerator - denominator), 0)
+        
+        if np.isnan(alpha):
+            print("!!!! ALPHA IS NAN !!!!")
+            print(maxmin(numerator - denominator))
+            print(lik_e(data, params_))
+            print(params_)
+            
         alphas.append(alpha)
-        if np.random.uniform() < alpha: 
+        if np.random.uniform() < np.exp(alpha): 
             params = params_ 
             params_copy = copy.deepcopy(params)
             l.append(params_copy)
@@ -72,7 +75,8 @@ class Evaluator():
         
     def __call__(self,  data): 
         assert len(data) == len(self.fun_l), "number of data and functions do not match"
+        maxmin = lambda x: max(min(x,np.exp(700)),np.exp(-700))
         sample = []
-        for i in range(len(self.param_l)): 
-            sample.append(self.fun_l[i](data[i], *self.param_l[i]))
+        for i in range(len(self.param_l)):
+            sample.append(np.log(maxmin(self.fun_l[i](data[i], *self.param_l[i]))))
         return tuple(sample)
