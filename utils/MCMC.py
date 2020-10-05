@@ -15,6 +15,8 @@ def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500):
     l = []
     alphas = []
     params_l = []
+    post_l = []
+    idx = []
     
     maxmin = lambda x: max(min(x,700),-700)
     post_e = lambda lik,prior,params: lik(data, params) + np.sum(prior(params))
@@ -25,21 +27,26 @@ def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500):
             break
     
     # Burn in 
-    for _ in tqdm(range(burnin)):
-        params_ = prop_s(params)
-        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
-        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
-        alpha = min(numerator - denominator, 0)
-                
-        if np.random.uniform() < np.exp(maxmin(alpha)): 
-            params = params_ 
-            params_copy = copy.deepcopy(params)
-    # Sampler
-    for _ in tqdm(range(N)):
+    for i in tqdm(range(burnin)):
         params_l.append(params)
         params_ = prop_s(params)
         numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
         denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
+        post_l.append((numerator, denominator)) 
+        alpha = min(numerator - denominator, 0)
+        
+        alphas.append(alpha)
+        if np.random.uniform() < np.exp(maxmin(alpha)): 
+            params = params_ 
+            params_copy = copy.deepcopy(params)
+            
+    # Sampler
+    for i in tqdm(range(N)):
+        params_l.append(params)
+        params_ = prop_s(params)
+        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
+        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
+        post_l.append((numerator, denominator)) 
         alpha = min(maxmin(numerator - denominator), 0)
         
         if np.isnan(alpha):
@@ -53,7 +60,9 @@ def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500):
             params = params_ 
             params_copy = copy.deepcopy(params)
             l.append(params_copy)
-    return l, alphas, params_l
+            idx.append(burnin+i)
+            
+    return l, idx, alphas, params_l, post_l
 
 class Sampler(): 
     def __init__(self, param_l, fun_l):
