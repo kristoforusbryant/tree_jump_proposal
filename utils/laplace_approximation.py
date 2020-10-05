@@ -52,7 +52,7 @@ def mode(G, delta, D, N=50):
             C = K[c,:][:, not_c]
             D = K[not_c,:][:, not_c]
             K[np.ix_(c, c)]= np.linalg.inv(L[c,:][:,c]) + (C @ np.linalg.inv(D) @ B) 
-        if np.max(K - K_) < 1e-8: break 
+        if np.max(np.abs(K - K_)) < 1e-8: break 
     return K 
 
 def constrained_cov(G, L, M, N=50):
@@ -68,7 +68,7 @@ def constrained_cov(G, L, M, N=50):
             Q_inv = np.linalg.inv(K_) 
             Q_inv[np.ix_(c, c)] += np.linalg.inv(L[c,:][:,c]) - np.linalg.inv(K_[c,:][:,c]) # subset first, then take inv     
             K_ = np.linalg.inv(Q_inv)
-        if np.max(K - K_) < 1e-8: break
+        if np.max(np.abs(K - K_)) < 1e-8: break
         K = K_
     return K 
 
