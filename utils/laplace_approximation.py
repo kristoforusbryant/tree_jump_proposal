@@ -101,6 +101,6 @@ def laplace_approx(G, delta, D, as_log_prob=True):
     H = hessian(K, V, delta, D)
     log_p = h + len(V)/2 * np.log(2*np.pi) + (-1/2) * np.log(np.linalg.det(-H))
     if as_log_prob:
-        return maxmin(log_p)
+        return log_p
     else: 
         return np.exp(maxmin(log_p))

@@ -1,9 +1,16 @@
+import numpy as np
 # COMBINATORIAL FUNCTIONS 
 def choose(n,k): 
     prod = 1
     for i in range(k): 
         prod *= (n-i)/(k-i)
     return prod
+
+def log_choose(n,k): 
+    prod = 0
+    for i in range(k): 
+        prod += (np.log(n-i) - np.log(k-i))
+    return prod 
 
 def factorial(n): 
     prod = 1 
