@@ -3,7 +3,7 @@ import scipy.stats as st
 from tqdm import tqdm
 import copy
 
-def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500): 
+def MCMC(prior_s, prior_r_e, lik_r_e, prop_s, prop_r_e, data, N=5000, burnin=2500): 
     """
     prior_s(f): Samples from prior distribution 
     prior_e(f): Evaluates prior probability of current sample 
@@ -12,57 +12,67 @@ def MCMC(prior_s, prior_e, lik_e, prop_s, prop_e, data, N=1000, burnin=500):
     prop_e(f): Evaluates probability of the current sample given the previous sample 
     """
     
-    l = []
-    alphas = []
-    params_l = []
-    post_l = []
-    idx = []
+    results = {'SAMPLES':[],
+               'ALPHAS':[],
+               'PARAMS':[], 
+               'INDEX':[], 
+               'LIK_R':[], 
+               'PRIOR_R':[], 
+               'PROP_R':[]
+              }
     
-    maxmin = lambda x: max(min(x,700),-700)
-    post_e = lambda lik,prior,params: lik(data, params) + np.sum(prior(params))
     # Initialisation 
-    while True: 
-        params = prior_s()
-        if post_e(lik_e, prior_e, params) != -np.inf: 
-            break
+    params = prior_s()
+    print(params)
     
     # Burn in 
     for i in tqdm(range(burnin)):
-        params_l.append(params)
+        results['PARAMS'].append(params)
         params_ = prop_s(params)
-        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
-        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
-        post_l.append((numerator, denominator)) 
-        alpha = min(numerator - denominator, 0)
         
-        alphas.append(alpha)
-        if np.random.uniform() < np.exp(maxmin(alpha)): 
+        lik_ratio = lik_r_e(data, params, params_)
+        prior_ratio = prior_r_e(params, params_)
+        prop_ratio = prop_r_e(params, params_)
+        
+        results['LIK_R'].append(lik_ratio) 
+        results['PRIOR_R'].append(prior_ratio)
+        results['PROP_R'].append(prop_ratio) 
+        
+        alpha = min(lik_ratio + prior_ratio + prop_ratio, 0)
+        
+        results['ALPHAS'].append(alpha)
+        if np.log(np.random.uniform()) < alpha: 
             params = params_ 
             params_copy = copy.deepcopy(params)
             
     # Sampler
     for i in tqdm(range(N)):
-        params_l.append(params)
+        results['PARAMS'].append(params)
         params_ = prop_s(params)
-        numerator = post_e(lik_e, prior_e, params_) + prop_e(params,params_) 
-        denominator = post_e(lik_e, prior_e, params) + prop_e(params_,params)
-        post_l.append((numerator, denominator)) 
-        alpha = min(maxmin(numerator - denominator), 0)
+        
+        lik_ratio = lik_r_e(data, params, params_)
+        prior_ratio = prior_r_e(params, params_)
+        prop_ratio = prop_r_e(params, params_)
+        
+        results['LIK_R'].append(lik_ratio) 
+        results['PRIOR_R'].append(prior_ratio)
+        results['PROP_R'].append(prop_ratio) 
+        
+        alpha = min(lik_ratio + prior_ratio + prop_ratio, 0)
         
         if np.isnan(alpha):
             print("!!!! ALPHA IS NAN !!!!")
-            print(maxmin(numerator - denominator))
             print(lik_e(data, params_))
             print(params_)
             
-        alphas.append(alpha)
-        if np.random.uniform() < np.exp(alpha): 
+        results['ALPHAS'].append(alpha)
+        if np.log(np.random.uniform()) < alpha: 
             params = params_ 
             params_copy = copy.deepcopy(params)
-            l.append(params_copy)
-            idx.append(burnin+i)
+            results['SAMPLES'].append(params_copy)
+            results['INDEX'].append(burnin+i)
             
-    return l, idx, alphas, params_l, post_l
+    return results
 
 class Sampler(): 
     def __init__(self, param_l, fun_l):
