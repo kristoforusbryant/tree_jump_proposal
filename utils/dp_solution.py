@@ -1,7 +1,7 @@
 import numpy as np 
 import networkx as nx
 from .brute_force import count_spanning_partitions_brute
-from .combinatorics import power, factorial 
+from .combinatorics import power, choose  
 
 # Implement Dynamic Programming
 def count_spanning_trees(G): 
@@ -23,23 +23,23 @@ def count_spanning_partitions(G,k, memo={}):
         return res, memo 
     
     #if nonsense 
-    if len(G.edges) < len(G.nodes): 
-        raise ValueError
+    #if len(G.edges) < len(G.nodes) -1: 
+    #    raise ValueError
     
     #else 
     tau = round(count_spanning_trees(G))
-    total = factorial(tau,k)
-       
+    total = choose(tau,k) 
+        
     sum_connected = 0 
     
     for i in range(1,np.power(2, len(G.edges)) -1):  # exclude the null and the graph G
         binary = (len(G.edges) - len(bin(i)[2:])) * '0' + bin(i)[2:]
-        if sum([int(b) for b in binary]) < len(G.nodes): continue
+        if sum([int(b) for b in binary]) < len(G.nodes)-1: continue
         G_new = nx.Graph()
         G_new.add_nodes_from(list(G.nodes))
         G_new.add_edges_from([list(G.edges)[j] for j,b in enumerate(binary) if int(b)])
         if not nx.is_connected: print(G_new.edges)
-        if nx.is_connected(G_new):
+        if nx.is_connected(G_new): #the connected condition might need checking 
             G_next = G_new.copy()
             sums, memo = count_spanning_partitions(G_next, k, memo)
             sum_connected += sums

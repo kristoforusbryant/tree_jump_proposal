@@ -93,6 +93,7 @@ def laplace_approx(G, delta, D, as_log_prob=True):
     maxmin = lambda x: max(min(x,700),-700)
     K = mode(G, delta, D)
     V = []
+    # creating duplication matrix 
     for k,l in G.items():
         V.append((k,k))
         for v in l: 

@@ -6,7 +6,9 @@ def choose(n,k):
         prod *= (n-i)/(k-i)
     return prod
 
-def log_choose(n,k): 
+def log_choose(n,k):
+    if n < k: return -700  
+    if k==0 or k==n: return 0 
     prod = 0
     for i in range(k): 
         prod += (np.log(n-i) - np.log(k-i))

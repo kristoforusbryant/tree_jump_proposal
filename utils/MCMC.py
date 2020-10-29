@@ -62,7 +62,7 @@ def MCMC(prior_s, prior_r_e, lik_r_e, prop_s, prop_r_e, data, N=5000, burnin=250
         
         if np.isnan(alpha):
             print("!!!! ALPHA IS NAN !!!!")
-            print(lik_e(data, params_))
+            print(lik_r_e(data, params_))
             print(params_)
             
         results['ALPHAS'].append(alpha)
@@ -71,6 +71,7 @@ def MCMC(prior_s, prior_r_e, lik_r_e, prop_s, prop_r_e, data, N=5000, burnin=250
             params_copy = copy.deepcopy(params)
             results['SAMPLES'].append(params_copy)
             results['INDEX'].append(burnin+i)
+        else: results['SAMPLES'].append(params)
             
     return results
 

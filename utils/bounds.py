@@ -1,5 +1,6 @@
 import numpy as np 
 from utils.combinatorics import choose, log_choose
+import copy
 
 def set_to_dict_lists(s, n): 
     dic = {i:[] for i in range(n)}
@@ -101,13 +102,14 @@ def lower_bound(d1,d0, as_log=True):
             return np.log(count_bridging_trees(d0,d1))
         else: 
             return count_bridging_trees(d0,d1)
-    else: return -700 # almost minus inf 
+    #TODO: handle the case where graph doesn't change from addition/removal of trees 
+    else: return -700 # if graph doesn't change => do not accept proposal 
 
 # transform this to log scale 
 def tree_count_product(tree_seq, as_log=True):
     G = tree_seq[0]
     G_new = tree_seq[0]
-    prod = 1
+    prod = 0 if as_log else 1 
     for i in range(1, len(tree_seq)): 
         for k,v in tree_seq[i].items(): 
             G_new[k] = list(set(G[k]).union(set(v)))
@@ -121,19 +123,21 @@ def tree_count_product(tree_seq, as_log=True):
 def upper_bound(d1,d0,ts1,ts0, as_log=True): 
     "Ratio of G1/G0"
     assert np.abs(len(ts0) - len(ts1)) == 1, 'proposal k does not differ by one'
+    assert len(d1) == len(d0), 'number of nodes does not match'    
     
+    t1_dic_list = [set_to_dict_lists(t, len(d1)) for t in ts1] 
     if len(ts0) > len(ts1): 
         tau = count_spanning_trees(d0)
         if as_log: 
-            return tree_count_product(ts1) - log_choose(tau,len(ts1)+1)
+            return tree_count_product(t1_dic_list) - log_choose(tau,len(t1_dic_list)+1)
         else: 
-            return tree_count_product(ts1, as_log=False)/choose(tau,len(ts1)+1)
+            return tree_count_product(t1_dic_list, as_log=False)/choose(tau,len(t1_dic_list)+1)
     else: 
         tau = count_spanning_trees(d1)
         if as_log: 
-            return log_choose(tau,len(ts1)) - tree_count_product(ts1[:-1])
+            return log_choose(tau,len(t1_dic_list)) - tree_count_product(t1_dic_list[:-1])
         else: 
-            return choose(tau,len(ts1))/tree_count_product(ts1[:-1], as_log=False)
+            return choose(tau,len(t1_dic_list))/tree_count_product(t1_dic_list[:-1], as_log=False)
 
 # def upper_bound(d1,d2,tree_seq): 
 #     "Ratio of G1/G2, where tree_seq is the trees that builds G1"
