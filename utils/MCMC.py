@@ -47,8 +47,9 @@ def MCMC(prior_s, prior_r_e, lik_r_e, prop_s, prop_r_e, data, N=5000, burnin=250
             
     # Sampler
     for i in tqdm(range(N)):
-        results['PARAMS'].append(params)
+        results['SAMPLES'].append(params)
         params_ = prop_s(params)
+        results['PARAMS'].append(params_)
         
         lik_ratio = lik_r_e(data, params, params_)
         prior_ratio = prior_r_e(params, params_)
@@ -67,11 +68,7 @@ def MCMC(prior_s, prior_r_e, lik_r_e, prop_s, prop_r_e, data, N=5000, burnin=250
             
         results['ALPHAS'].append(alpha)
         if np.log(np.random.uniform()) < alpha: 
-            params = params_ 
-            params_copy = copy.deepcopy(params)
-            results['SAMPLES'].append(params_copy)
-            results['INDEX'].append(burnin+i)
-        else: results['SAMPLES'].append(params)
+            params = copy.deepcopy(params_) 
             
     return results
 

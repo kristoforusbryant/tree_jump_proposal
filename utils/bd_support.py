@@ -1,7 +1,10 @@
 import numpy as np 
 
-def complete_graph(n): 
-    return {i:list(range(n)) for i in range(n)}
+def complete_graph(n):
+    g = {i:list(range(n)) for i in range(n)}
+    for k in g: 
+        g[k].remove(k)
+    return g
 def complement_graph(d):
     d_ = complete_graph(len(d))
     for i in range(len(d)): 
@@ -59,6 +62,14 @@ def add_graph(d0,d1):
     for k, l in d1.items(): 
         d0[k] = list(set(d0[k]).union(set(d1[k])))
     return d0
+
+def as_edge_list(d): 
+    l = []
+    for k, l in d.items(): 
+        for v in l: 
+            if k < v: 
+                l.append((k,v))
+    return l
     
 def lift_HG(hg, cc, g):
     lifted = []

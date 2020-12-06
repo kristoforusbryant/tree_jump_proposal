@@ -1,13 +1,29 @@
 import scipy.stats as st
 from utils.laplace_approximation import laplace_approx, constrained_cov
 from utils.sampling import sample_tree
-from utils.prior_MCMC import Y
+from utils.prior_MCMC import Y, sampleTreeFromConnected
 from utils.bounds import lower_bound, upper_bound
+from utils.bd_support import *
+from utils.dp_solution import count_spanning_trees
+
+
+geom_p = .5 
+method = 'bounds'
+birth_p = .5 
+beta = .8
 
 print("geom_p: " + str(geom_p)) 
 print("method: " + str(method))
 print("birth_p: " + str(birth_p)) 
 print("beta: " + str(beta)) # probability of being smart   
+
+def count_spanning_trees(G): 
+    G = nx.from_dict_of_lists(G)
+    A = nx.adj_matrix(G).todense()
+    D = np.diag(np.array(A.sum(axis=0))[0])
+    L = D - A
+    eigv = np.linalg.eigvals(L)
+    return int(np.round(np.prod(eigv[np.abs(eigv) > 0.0000001])/L.shape[0]))
 
 # Smart Birth Death Proposal with Mixing 
 ## According to (Abhinav, Week 10) 
@@ -80,7 +96,7 @@ def death(G,T_set):
     for i in G.keys(): 
         G[i].sort()
     return ((G,T_set), -np.log(len(T_set))) 
-death_p = lambda G,T_set: np.log(len(T_set))
+death_prior = lambda G,T_set: np.log(len(T_set))
 
 def birth(G,T_set): 
     sample = T_set[0]
@@ -93,7 +109,7 @@ def birth(G,T_set):
     for i in G.keys(): 
         G[i].sort()
     return ((G,T_set), count_spanning_trees(G) - len(T_set)) 
-birth_p = lambda G,T_set: count_spanning_trees(G) - len(T_set)
+birth_prior = lambda G,T_set: count_spanning_trees(G) - len(T_set)
 
 # Smart-Birth BD proposal 
 def gen_tree_smart(G): 
@@ -104,7 +120,7 @@ def gen_tree_smart(G):
     lp = 0 
     for c in C: 
         S = subgraph(G,c)
-        Tc += randomTree(S).edges
+        Tc += as_edge_list(sampleTreeFromConnected(S))
         lp -= np.log(count_spanning_trees(S))
     for i in range(len(C)): 
         for j in range(i):
@@ -114,7 +130,7 @@ def gen_tree_smart(G):
     return Tc + lifted, lp 
     
 def smart_birth(G,T_set, beta):
-    if np.random.uniform < beta: 
+    if np.random.uniform() < beta: 
         sample, lp = gen_tree_smart(G)
         T_set.append(sample)
         for i,j in sample:
@@ -129,7 +145,7 @@ def smart_birth(G,T_set, beta):
         return (params, lp + np.log(1-beta))
 
 def smart_birth_p(G,T_set, beta): # computing probability needs requires one pass through the algorithm  
-    if np.random.uniform < beta: 
+    if np.random.uniform() < beta: 
         sample, lp = gen_tree_smart(G)
         T_set.append(sample)
         for i,j in sample:
@@ -145,6 +161,7 @@ def smart_birth_p(G,T_set, beta): # computing probability needs requires one pas
     
 def bd_prop(params, p=birth_p, beta=beta):
     G,T_set = copy.deepcopy(params)
+    if len(T_set) < 2: p = 1
     lp = 0
     # Birth or Death 
     if np.random.uniform() < p or len(T_set) == 1:

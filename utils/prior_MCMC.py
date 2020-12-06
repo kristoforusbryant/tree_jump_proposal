@@ -1,4 +1,5 @@
 import numpy as np 
+import copy 
 
 def sampleTreeFromConnected(d): 
     """
@@ -72,6 +73,8 @@ def _Y(d, k, numIters):
     return success
 
 def Y(d, k, numIters=1000, numWorkers=1):
+    d = copy.deepcopy(d)
+    
     # basic bounds checking
     n, m = len(d), n_edges(d)
     if (k*(n-1) < m):
