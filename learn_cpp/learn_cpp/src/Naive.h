@@ -53,6 +53,46 @@ public:
 	friend class Likelihood;
 };
 
+// Define MCMC Output
+template <int n>
+struct DataOutput {
+	int iter;
+	double logprior;
+	double loglik;
+	double logprop;
+	double alpha;
+	double tobeat;
+	Params<n> param; 
+	Params<n> param_;
+
+	DataOutput() {
+		iter = -1;
+		logprior = -1.;
+		loglik  = -1.;
+		logprop = -1.;
+		alpha = -1.;
+		tobeat = -1.;
+	}
+
+	DataOutput(int iter, double logprior, double loglik, double logprop, double alpha, double tobeat, Params<n> param, Params<n> param_) {
+		this->iter = iter;
+		this->logprior = logprior;
+		this->loglik = loglik;
+		this->logprop = logprop;
+		this->alpha = alpha;
+		this->tobeat = tobeat;
+		this->param = param;
+		this->param_ = param_;
+	}
+
+	friend std::ostream& operator<<(std::ostream& out, const DataOutput& data) {
+		out << data.iter << "," << data.logprior << "," << data.loglik << "," << data.logprop << "," << data.alpha << "," << data.tobeat << "," << (data.alpha > data.tobeat);
+		out<< "," << data.param << "," << data.param_ << "\n";
+		return out;
+	}
+};
+
+
 // Uniform Prior on the Space of Graphs 
 template<int n>
 class Prior {

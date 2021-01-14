@@ -17,11 +17,10 @@ LIKELIHOOD: MARGINAL P(G | DATA) APPROXIMATED BY LAPLACE APPROX
 
 // Define Basis 
 template<int n>
-class Basis {
+struct Basis {
 	UTGraph<n> T; 
-	UTGraph<n> Basis[(n-1) * (n-2) / 2];
+	UTGraph<n> glist[(n-1) * (n-2) / 2];
 
-public:
 	Basis() {
 		for (int i = 0; i < n - 1; ++i) {
 			T.AddEdge(i, i + 1);
@@ -34,20 +33,16 @@ public:
 				T_.AddEdge(i, j);
 
 				std::vector<int> visited;
-				T_.FindCycle(int now, int prev, const std::vector<int>& visited);
-				visited.push_back(visited[0]);
+				T_.FindCycle<n>(0, -1, visited);
 
-				for (size_t k = 0; k < visited.size(); ++k) {
-					Basis[idx].AddEdge(k, k + 1); 
+				for (size_t k = 0; k < (visited.size() - 1); ++k) {
+					glist[idx].AddEdge(visited[k], visited[k + 1]);
 				}
 				idx++;
 			}
 		}
 
 	}
-	
-	
-
 };
 
 
@@ -55,7 +50,7 @@ public:
 template<int n>
 class Params {
 	UTGraph<n> G;
-	std::array<int, (n - 1)* (n - 2) / 2> Basis_idx; 
+	std::array<bool, (n - 1)* (n - 2) / 2> Basis_idx { false };
 public:
 	UTGraph<n> GetG() const {
 		return G;
@@ -63,6 +58,22 @@ public:
 
 	void FlipEdge(int i) { // using the array index directly 
 		G.BinaryAddToArray(i);
+	}
+	
+	void PrintGraph() const {
+		G.PrintGraph();
+	}
+
+	void PrintEdges() const {
+		G.PrintEdges();
+	}
+
+	void PrintBasis() const {
+		std::cout << "[ ";
+		for (int i = 0; i < (n - 1) * (n - 2) / 2; ++i) {
+			std::cout << Basis_idx[i] << ", ";
+		}
+		std::cout << "]" << std::endl;
 	}
 
 	friend std::ostream& operator<<(std::ostream& out, const Params& param) {
@@ -94,20 +105,66 @@ public:
 	friend class Likelihood;
 };
 
+
+// Define MCMC Output
+template <int n>
+struct DataOutput {
+	int iter;
+	double logprior;
+	double loglik;
+	double logprop;
+	double alpha;
+	double tobeat;
+	Params<n> param;
+	Params<n> param_;
+
+	DataOutput() {
+		iter = -1;
+		logprior = -1.;
+		loglik = -1.;
+		logprop = -1.;
+		alpha = -1.;
+		tobeat = -1.;
+	}
+
+	DataOutput(int iter, double logprior, double loglik, double logprop, double alpha, double tobeat, Params<n> param, Params<n> param_) {
+		this->iter = iter;
+		this->logprior = logprior;
+		this->loglik = loglik;
+		this->logprop = logprop;
+		this->alpha = alpha;
+		this->tobeat = tobeat;
+		this->param = param;
+		this->param_ = param_;
+	}
+
+	friend std::ostream& operator<<(std::ostream& out, const DataOutput& data) {
+		out << data.iter << "," << data.logprior << "," << data.loglik << "," << data.logprop << "," << data.alpha << "," << data.tobeat << "," << (data.alpha > data.tobeat);
+		out << "," << data.param << "," << data.param_ << "\n";
+		return out;
+	}
+};
+
+
+
 // Uniform Prior on the Space of Graphs 
 template<int n>
 class Prior {
-	Basis* basis; 
+	Basis<n> basis; 
 public:
-	Prior(Basis* basis_) {
+	Prior(Basis<n>& basis_) {
 		basis = basis_;
 	}
+
 	// Sample 
 	Params<n> Sample(std::default_random_engine& generator) {
 		Params<n> p;
 		std::bernoulli_distribution dis(.5);
 		for (int i = 0; i < int((n - 1) * (n - 2) / 2); ++i) {
-			if (dis(generator)) p.G += (*basis)[i];
+			if (dis(generator)) {
+				p.G.BinaryAddition(basis.glist[i]);
+				p.Basis_idx[i] = true;
+			}
 		}
 		return p;
 	}
@@ -145,9 +202,9 @@ public:
 // Uniform Proposal
 template<int n>
 class Proposal {
-	Basis* basis;
+	Basis<n> basis;
 public:
-	Proposal(Basis* basis_) {
+	Proposal(Basis<n>& basis_) {
 		basis = basis_;
 	}
 
@@ -156,8 +213,8 @@ public:
 		Params<n> p_ = p;
 		std::uniform_int_distribution<int> dis(0, ((n - 1) * (n - 2) / 2) - 1);
 		int i = dis(generator);
-		p_.G += (*basis)[i]; // Test this 
-		p_.Basis_idx[i] = true; 
+		p_.G.BinaryAddition(basis.glist[i]); // Test this 
+		p_.Basis_idx[i] = p.Basis_idx[i] ^ true;
 		return p_;
 	}
 

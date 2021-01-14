@@ -137,6 +137,30 @@
 		std::cin.get();
 	}
 
+	// FindCycle 
+	UTGraph<5> RG0;
+	std::default_random_engine generator;
+
+	for (int i = 0; i < 100; i++) {
+		// Random
+		RG0 = RandomGraph<5>(generator);
+		std::cout << "RG0" << std::endl;
+		RG0.PrintGraph();
+		RG0.PrintEdges();
+		std::vector<int> visited;
+
+		// FindCycle
+		RG0.FindCycle<5>(0, -1, visited);
+		std::cout << "[ ";
+		for (size_t i = 0; i < visited.size(); ++i) {
+			std::cout << visited[i] << ", ";
+		}
+		std::cout << "]\n";
+
+		std::cin.get();
+	}
+
+
 */
 
 /* MySet
@@ -298,7 +322,7 @@
 	Eigen::MatrixXd dat(N, dim);
 
 	for (int i = 0; i < N; i++) {
-		s = sample();
+		s = sample(generator);
 		dat({ i }, Eigen::all) = s;
 		for (int j = 0; j < dim; j++) {
 			std::cout << s[j] << ", ";
@@ -309,6 +333,31 @@
 	std::cout << "### Data Matrix D ###" << std::endl; 
 	std::cout << dat << std::endl;
 
+*/
+
+/* G-Wishart Block Sampler
+	std::default_random_engine generator;
+	UTGraph<4> RG0 = RandomGraph<4>(generator);
+
+	int dim = 4;
+	int N = 10;
+	Eigen::MatrixXd covar(dim, dim);
+	covar << 1, .0, .0, .0,
+		.0, 1, .0, .0,
+		.0, .0, 1, .0,
+		.0, .0, .0, 1;
+	Eigen::MatrixXd dat(N, dim);
+	Eigen::VectorXd s;
+
+	GWishartLikelihoodSampler<4> sample(RG0, 5, covar);
+
+	for (int i = 0; i < N; i++) {
+		s = sample();
+		dat({ i }, Eigen::all) = s;
+	}
+
+	std::cout << "### Data Matrix D ###" << std::endl;
+	std::cout << dat << std::endl;
 */
 
 // LAPLACE APPROX

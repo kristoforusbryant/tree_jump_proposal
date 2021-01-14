@@ -19,11 +19,9 @@ struct normal_random_variable
     Eigen::VectorXd mean;
     Eigen::MatrixXd transform;
 
-    Eigen::VectorXd operator()() const
+    Eigen::VectorXd operator()(std::default_random_engine& generator) const
     {
-        static std::mt19937 gen{ std::random_device{}() };
         static std::normal_distribution<> dist;
-
-        return mean + transform * Eigen::VectorXd{ mean.size() }.unaryExpr([&](auto x) { return dist(gen); });
+        return mean + transform * Eigen::VectorXd{ mean.size() }.unaryExpr([&](auto x) { return dist(generator); });
     }
 };

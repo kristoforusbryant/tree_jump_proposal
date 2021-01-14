@@ -78,14 +78,18 @@ public:
 	} // copy constructor
 
 	void AddEdge(int i, int j) {
-		adjM[GetArrayIndex(i, j)] = true;
+		adjM[GetArrayIndex(std::min(i,j), std::max(i,j))] = true;
 	}
 	void RemoveEdge(int i, int j) {
-		adjM[GetArrayIndex(i, j)] = false;
+		adjM[GetArrayIndex(std::min(i, j), std::max(i, j))] = false;
 	}
 
 	void BinaryAddToArray(int i) { 
 		adjM[i] = adjM[i] ^ 1;
+	}
+
+	void AddCircle() {
+		for (int i = 0; i < n * (n - 1) / 2; i += (n - 1 - i)) { adjM[i] = true; }
 	}
 
 	template <int n>
@@ -98,15 +102,34 @@ public:
 	}
 
 	template<int n>
-	void FindCycle(int now, int prev, const std::vector<int>& visited) {
-		std::array<bool, n> nb;
+	bool FindCycle(int now, int prev, std::vector<int>& visited) { // find the first cycle via DFS starting from the node "now"
+		visited.push_back(now);
+		std::array<bool, n> nb{};
 		Neighbours(now, nb); 
+		/*std::cout << "now: " << now << std::endl; 
+		std::cout << "neighbours: [";
 		for (int i = 0; i < n; ++i) {
-			if (nb[i] && (i != prev) && (std::find(visited.begin(), visited.end(), i) != visited.end())) { // is neighbour, not previous, and not visited
-				visited.push_back(i);
-				FindCycle(i, now, visited);
-			}	
+			std::cout << nb[i] << ", " ; 
 		}
+		std::cout << "]" << std::endl;;*/
+		
+		for (int i = 0; i < n; ++i) { // a neighbour, but not previous
+			if (nb[i] && (i != prev)) {
+				if (std::find(visited.begin(), visited.end(), i) != visited.end()) {
+					visited.push_back(i);
+					std::reverse(visited.begin(), visited.end());
+					while ( visited.back() != i) {
+						visited.pop_back();
+					};
+					return true;
+				}
+				else { 
+					if (FindCycle<n>(i, now, visited)) { return true; };
+				}
+			}
+		}
+		visited.pop_back(); 
+		return false;
 	}
 
 
@@ -140,7 +163,7 @@ public:
 			adjM[i] = adjM[i] | other.adjM[i];
 	} 
 
-	void BasisAddition(const UTGraph& other) {
+	void BinaryAddition(const UTGraph& other) {
 		for (int i = 0; i < n * (n - 1) / 2; i++)
 			adjM[i] = adjM[i] ^ other.adjM[i];
 	}
@@ -148,7 +171,7 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& out, const UTGraph& G) {
 		out << "[ ";
-		for (int i = 0; i < int(n * (n - 1) / 2); ++i)
+		for (int i = 0; i < int(n * (n - 1) / 2); i++)
 			out << G.adjM[i] << " ";
 		out << "]";
 		return out;
@@ -181,7 +204,7 @@ UTGraph<n> ComplementGraph(const UTGraph<n>& other) {
 }
 
 template <int n>
-void DFUtils(const UTGraph<n>& G, int x, const std::array<bool, n>& visited) { // replace visited in place
+void DFUtils(const UTGraph<n>& G, int x, std::array<bool, n>& visited) { // replace visited in place
 	visited[x] = true;
 	std::array<bool, n> nb = { false };
 	G.Neighbours<n>(x, nb);
@@ -191,6 +214,8 @@ void DFUtils(const UTGraph<n>& G, int x, const std::array<bool, n>& visited) { /
 		}
 	}
 }
+
+
 
 template <int n>
 void ConnectedComponents(const UTGraph<n>& G, const std::array<int, n>& comps) {
